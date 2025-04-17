@@ -1,0 +1,24 @@
+=== ESTADÍSTICAS DE COLOR ===
+Total de píxeles analizados: 7028
+Total de imágenes procesadas: 1
+
+Valores RGB (0-255):
+  Mínimo: R=46, G=30, B=0
+  Máximo: R=255, G=255, B=230
+
+Valores HSV (normalizados 0-1):
+  Mínimo: H=0.1061, S=0.0980, V=0.1804
+  Máximo: H=0.2011, S=1.0000, V=1.0000
+
+Valores HSV (formato OpenCV):
+  Mínimo: H=19, S=25, V=46
+  Máximo: H=36, S=255, V=255
+
+=== CÓDIGO PARA USAR ESTOS VALORES ===
+# Para formato normalizado (0-1):
+lower_hsv = np.array([0.1061, 0.0980, 0.1804])
+upper_hsv = np.array([0.2011, 1.0000, 1.0000])
+
+# Para formato OpenCV:
+lower_hsv_cv = np.array([19, 25, 46])
+upper_hsv_cv = np.array([36, 255, 255])
