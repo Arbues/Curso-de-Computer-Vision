@@ -1,5 +1,5 @@
 
-##falta mejorar el output, las imagens que muestra como resultado, lo demas esta completo
+##falta mejorar el output, las imagens que muestra como resultado, lo demas esta completo, tambien falta meter todo esto en una carpeta xD
 import os
 import sys
 import numpy as np
@@ -12,8 +12,8 @@ import pandas as pd
 
 class RegionSelector:
     def __init__(self):
-        self.image_folder = "Imagenes"  # Carpeta donde se buscarán las imágenes (sin tilde)
-        self.output_folder = "test"     # Carpeta donde se guardarán los resultados
+        self.image_folder = "Problema1/Imagenes"  # Carpeta donde se buscarán las imágenes (sin tilde)
+        self.output_folder = "Problema1/test"     # Carpeta donde se guardarán los resultados
         self.output_file = os.path.join(self.output_folder, "color_statistics.csv")
         self.img = None
         self.points = []
@@ -321,15 +321,15 @@ class RegionSelector:
         return stats
     
     def visualize_color_ranges(self, stats):
-        """Visualiza los rangos de color en el espacio HSV"""
-        # Crear una imagen de demostración del rango HSV
+        """Visualiza los rangos de color en los espacios HSV y RGB, incluida vista 3D"""
+        # 1. Crear visualizaciones 2D como ya tenías
         h_range = np.linspace(stats['hsv_min'][0], stats['hsv_max'][0], 100)
         s_range = np.linspace(stats['hsv_min'][1], stats['hsv_max'][1], 100)
         
         # Crear una cuadrícula 2D para H y S
         h_grid, s_grid = np.meshgrid(h_range, s_range)
         
-        # Crear arrays 3D para HSV con valor V fijo a máximo
+        # Crear arrays 3D para HSV con valor V fijo
         hsv_min = np.zeros((100, 100, 3))
         hsv_min[:,:,0] = h_grid
         hsv_min[:,:,1] = s_grid
@@ -344,7 +344,7 @@ class RegionSelector:
         rgb_min = self.hsv_to_rgb(hsv_min)
         rgb_max = self.hsv_to_rgb(hsv_max)
         
-        # Visualizar
+        # Visualizar 2D
         fig, axes = plt.subplots(1, 2, figsize=(12, 6))
         
         axes[0].imshow(rgb_min)
@@ -358,11 +358,153 @@ class RegionSelector:
         axes[1].set_ylabel('Saturación (S)')
         
         plt.tight_layout()
-        vis_file = os.path.join(self.output_folder, 'rango_hsv_visualizado.png')
+        vis_file = os.path.join(self.output_folder, 'rango_hsv_visualizado_2d.png')
         plt.savefig(vis_file)
         plt.show()
-        print(f"Visualización guardada en {vis_file}")
-    
+        print(f"Visualización 2D guardada en {vis_file}")
+        
+        # 2. Crear visualizaciones 3D de los píxeles seleccionados
+        self.visualize_rgb_3d()
+        self.visualize_hsv_3d()
+
+    def visualize_rgb_3d(self):
+        """Visualiza los píxeles seleccionados en el espacio de color RGB en 3D"""
+        if not self.all_pixels_data:
+            print("No hay datos para visualizar en 3D.")
+            return
+        
+        # Convertir datos a DataFrame para facilitar el trabajo
+        df = pd.DataFrame(self.all_pixels_data)
+        
+        # Crear figura 3D
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Graficar cada punto en el espacio RGB
+        scatter = ax.scatter(df['r'], df['g'], df['b'], 
+                            c=df[['r', 'g', 'b']].values/255,  # Normalizar para colores
+                            marker='o', s=15, alpha=0.7)
+        
+        # Configurar ejes
+        ax.set_xlabel('Rojo (R)', fontsize=12)
+        ax.set_ylabel('Verde (G)', fontsize=12)
+        ax.set_zlabel('Azul (B)', fontsize=12)
+        
+        # Establecer límites para el cubo RGB
+        ax.set_xlim(0, 255)
+        ax.set_ylim(0, 255)
+        ax.set_zlim(0, 255)
+        
+        # Dibujar el cubo RGB (opcional)
+        r = [0, 255]
+        g = [0, 255]
+        b = [0, 255]
+        
+        # Lista de 8 vértices del cubo RGB
+        vertices = [(R, G, B) for R in r for G in g for B in b]
+        
+        # Dibujar líneas del cubo
+        for i, j in [
+            (0, 1), (0, 2), (1, 3), (2, 3),  # Base inferior
+            (4, 5), (4, 6), (5, 7), (6, 7),  # Base superior
+            (0, 4), (1, 5), (2, 6), (3, 7)   # Conectores verticales
+        ]:
+            ax.plot3D(*zip(vertices[i], vertices[j]), color='gray', alpha=0.5)
+        
+        # Añadir título
+        ax.set_title('Distribución de Píxeles en Espacio de Color RGB', fontsize=14)
+        
+        # Añadir una nota sobre los colores
+        fig.text(0.1, 0.01, 'Cada punto representa un píxel con su color correspondiente', fontsize=10)
+        
+        # Ajustar la vista
+        ax.view_init(elev=30, azim=45)
+        
+        plt.tight_layout()
+        vis_file = os.path.join(self.output_folder, 'distribucion_rgb_3d.png')
+        plt.savefig(vis_file)
+        plt.show()
+        print(f"Visualización 3D RGB guardada en {vis_file}")
+
+    def visualize_hsv_3d(self):
+        """Visualiza los píxeles seleccionados en el espacio de color HSV en 3D"""
+        if not self.all_pixels_data:
+            print("No hay datos para visualizar en 3D.")
+            return
+        
+        # Convertir datos a DataFrame
+        df = pd.DataFrame(self.all_pixels_data)
+        
+        # Crear figura 3D
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Convertir valores HSV a coordenadas cilíndricas/cónicas para mejor visualización
+        # H como ángulo, S como radio, V como altura
+        theta = df['h'] * 2 * np.pi  # H mapeado a [0, 2π]
+        radius = df['s']             # S ya está en [0, 1]
+        height = df['v']             # V ya está en [0, 1]
+        
+        # Convertir a coordenadas cartesianas para graficar
+        x = radius * np.cos(theta)
+        y = radius * np.sin(theta)
+        z = height
+        
+        # Colores basados en HSV para cada punto
+        colors = np.array([self.hsv_to_rgb_single(h, s, v) for h, s, v in zip(df['h'], df['s'], df['v'])])
+        
+        # Graficar puntos
+        scatter = ax.scatter(x, y, z, c=colors, marker='o', s=15, alpha=0.7)
+        
+        # Añadir un círculo en la base para referencia
+        theta_circle = np.linspace(0, 2*np.pi, 100)
+        x_circle = np.cos(theta_circle)
+        y_circle = np.sin(theta_circle)
+        z_circle = np.zeros_like(theta_circle)
+        ax.plot(x_circle, y_circle, z_circle, color='gray', alpha=0.5)
+        
+        # Añadir líneas de referencia desde el origen
+        ax.plot([0, 0], [0, 0], [0, 1], color='gray', alpha=0.5)  # Eje V
+        
+        # Configurar ejes
+        ax.set_xlabel('X (basado en H y S)', fontsize=12)
+        ax.set_ylabel('Y (basado en H y S)', fontsize=12)
+        ax.set_zlabel('Valor (V)', fontsize=12)
+        
+        # Establecer límites
+        ax.set_xlim(-1.1, 1.1)
+        ax.set_ylim(-1.1, 1.1)
+        ax.set_zlim(0, 1.1)
+        
+        # Añadir título
+        ax.set_title('Distribución de Píxeles en Espacio de Color HSV', fontsize=14)
+        
+        # Ajustar la vista
+        ax.view_init(elev=30, azim=45)
+        
+        plt.tight_layout()
+        vis_file = os.path.join(self.output_folder, 'distribucion_hsv_3d.png')
+        plt.savefig(vis_file)
+        plt.show()
+        print(f"Visualización 3D HSV guardada en {vis_file}")
+
+    def hsv_to_rgb_single(self, h, s, v):
+        """Convierte un solo valor HSV a RGB"""
+        # Crear un array 1x1x3 con el valor HSV
+        hsv = np.zeros((1, 1, 3), dtype=np.float32)
+        hsv[0, 0, 0] = h * 179  # Escalar a formato OpenCV
+        hsv[0, 0, 1] = s * 255
+        hsv[0, 0, 2] = v * 255
+        
+        # Convertir a uint8 para OpenCV
+        hsv = hsv.astype(np.uint8)
+        
+        # Convertir a RGB
+        rgb = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
+        
+        # Normalizar a [0, 1] para matplotlib
+        return rgb[0, 0] / 255.0
+
     def hsv_to_rgb(self, hsv):
         """Convierte HSV a RGB para visualización"""
         # Convertir de nuestro formato normalizado a formato OpenCV
