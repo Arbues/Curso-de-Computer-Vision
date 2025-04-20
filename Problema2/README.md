@@ -86,4 +86,4 @@ Los cambios principales son:
 4. El resultado siempre tiene las dimensiones del rectángulo vertical
 5. Se muestra un preview del rectángulo de destino antes de aplicar la transformación
 6. Los colores son coherentes: rojo para origen, verde para destino
-7. El nombre de archivo guardado incluye las dimensiones del resultado
+7. El nombre de archivo guardado incluye las dimensiones del resultado.
